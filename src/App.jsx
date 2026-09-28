@@ -8,7 +8,7 @@ import AuthModal from './components/AuthModal';
 import OrderSuccessModal from './components/OrderSuccessModal';
 import Toast from './components/Toast';
 import { INITIAL_PRODUCTS } from './data/initialProducts';
-import { Sparkles, Shield, Truck, Zap, Filter } from 'lucide-react';
+import { Sparkles, Shield, Truck, Zap, Filter, PlusCircle } from 'lucide-react';
 
 export default function App() {
   // Theme state: dark / light
@@ -258,25 +258,48 @@ export default function App() {
               </div>
             </section>
 
-            {/* Category Filter Pills */}
-            <div style={{ display: 'flex', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
-              {categories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className="nav-tab-btn"
-                  style={{
-                    background: selectedCategory === cat ? 'var(--uzum-primary)' : 'var(--bg-surface)',
-                    color: selectedCategory === cat ? '#ffffff' : 'var(--text-secondary)',
-                    border: '1px solid var(--border-color)',
-                    padding: '8px 16px',
-                    borderRadius: '12px',
-                    fontWeight: 700
-                  }}
-                >
-                  {cat === 'All' ? 'Barcha mahsulotlar' : cat}
-                </button>
-              ))}
+            {/* Category Filter Pills and Quick Add Product */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', marginBottom: '22px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {categories.map(cat => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className="nav-tab-btn"
+                    style={{
+                      background: selectedCategory === cat ? 'var(--uzum-primary)' : 'var(--bg-surface)',
+                      color: selectedCategory === cat ? '#ffffff' : 'var(--text-secondary)',
+                      border: '1px solid var(--border-color)',
+                      padding: '8px 16px',
+                      borderRadius: '12px',
+                      fontWeight: 700
+                    }}
+                  >
+                    {cat === 'All' ? 'Barcha mahsulotlar' : cat}
+                  </button>
+                ))}
+              </div>
+
+              <button
+                className="empty-action-btn"
+                onClick={() => {
+                  if (user.role !== 'seller') {
+                    setUser(prev => ({ ...prev, role: 'seller', loggedIn: true, name: prev.name || 'Sotuvchi' }));
+                  }
+                  setActiveTab('seller');
+                }}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '8px 16px',
+                  borderRadius: '12px',
+                  fontSize: '0.88rem'
+                }}
+              >
+                <PlusCircle size={16} />
+                <span>+ Yangi mahsulot (Rasm bilan)</span>
+              </button>
             </div>
 
             {/* Products Grid */}

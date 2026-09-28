@@ -47,6 +47,10 @@ export default function ProductCard({
           alt={product.title}
           className="product-image"
           loading="lazy"
+          onError={(e) => {
+            e.currentTarget.onerror = null;
+            e.currentTarget.src = '/images/sneakers.jpg';
+          }}
         />
 
         {/* Category / Promo Badge */}

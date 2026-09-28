@@ -1,5 +1,16 @@
-import React, { useState } from 'react';
-import { PlusCircle, TrendingUp, Package, DollarSign, Image as ImageIcon, CheckCircle } from 'lucide-react';
+import React, { useState, useRef } from 'react';
+import { 
+  PlusCircle, 
+  TrendingUp, 
+  Package, 
+  DollarSign, 
+  Image as ImageIcon, 
+  CheckCircle, 
+  Upload, 
+  Link as LinkIcon, 
+  X,
+  FileImage
+} from 'lucide-react';
 
 export default function SellerPanel({
   products,
@@ -12,13 +23,70 @@ export default function SellerPanel({
   const [price, setPrice] = useState('');
   const [oldPrice, setOldPrice] = useState('');
   const [category, setCategory] = useState('Elektronika');
-  const [image, setImage] = useState('/images/sneakers.jpg');
   const [description, setDescription] = useState('');
   const [successMsg, setSuccessMsg] = useState(false);
+
+  // Image mode: 'upload' | 'url' | 'preset'
+  const [imageMode, setImageMode] = useState('upload');
+  const [image, setImage] = useState('');
+  const [imagePreview, setImagePreview] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+
+  const fileInputRef = useRef(null);
+
+  // Handle local file upload
+  const handleFileChange = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const processFile = (file) => {
+    if (!file.type.startsWith('image/')) {
+      alert("Iltimos, faqat rasm faylini tanlang (JPG, PNG, WebP)!");
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      setImage(reader.result);
+      setImagePreview(reader.result);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const clearImage = () => {
+    setImage('');
+    setImagePreview('');
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!title || !price) return;
+
+    const finalImage = image || '/images/sneakers.jpg';
 
     const newProd = {
       id: Date.now(),
@@ -27,13 +95,13 @@ export default function SellerPanel({
       price: Number(price),
       oldPrice: oldPrice ? Number(oldPrice) : null,
       category,
-      image: image || '/images/sneakers.jpg',
+      image: finalImage,
       rating: 5.0,
       reviewsCount: 1,
       badge: "Yangi",
       inStock: true,
       installment: `${Math.round(Number(price) / 12).toLocaleString('uz-UZ')} so'm/oy`,
-      description: description || "Sotuvchi tomonidan qo'shilgan yuqori sifatli mahsulot."
+      description: description || "Sotuvchi tomonidan qo'shilgan sifatli mahsulot."
     };
 
     onAddProduct(newProd);
@@ -43,6 +111,7 @@ export default function SellerPanel({
     setPrice('');
     setOldPrice('');
     setDescription('');
+    clearImage();
 
     setTimeout(() => {
       setSuccessMsg(false);
@@ -166,33 +235,134 @@ export default function SellerPanel({
               />
             </div>
 
+            {/* Image Upload / Selector Area */}
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
-              <label className="form-label">Rasm tanlang yoki URL kiriting</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                {sampleImages.map((s) => (
+              <label className="form-label">Mahsulot Rasmi (Rasm yuklash / URL / Namunalar)</label>
+              
+              <div className="image-upload-wrapper">
+                {/* Method selector tabs */}
+                <div className="upload-tabs">
                   <button
-                    key={s.url}
                     type="button"
-                    onClick={() => setImage(s.url)}
-                    className="nav-tab-btn"
-                    style={{
-                      border: image === s.url ? '2px solid var(--uzum-primary)' : '1px solid var(--border-color)',
-                      background: image === s.url ? 'var(--uzum-primary-light)' : 'transparent',
-                      padding: '6px 12px'
-                    }}
+                    className={`upload-tab-btn ${imageMode === 'upload' ? 'active' : ''}`}
+                    onClick={() => setImageMode('upload')}
                   >
-                    <ImageIcon size={14} />
-                    <span>{s.label}</span>
+                    <Upload size={15} />
+                    <span>Fayl yuklash</span>
                   </button>
-                ))}
+
+                  <button
+                    type="button"
+                    className={`upload-tab-btn ${imageMode === 'url' ? 'active' : ''}`}
+                    onClick={() => setImageMode('url')}
+                  >
+                    <LinkIcon size={15} />
+                    <span>Rasm URL manzili</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    className={`upload-tab-btn ${imageMode === 'preset' ? 'active' : ''}`}
+                    onClick={() => setImageMode('preset')}
+                  >
+                    <ImageIcon size={15} />
+                    <span>Namunaviy rasmlar</span>
+                  </button>
+                </div>
+
+                {/* 1. File Upload Dropzone */}
+                {imageMode === 'upload' && !imagePreview && (
+                  <div
+                    className={`file-dropzone ${isDragging ? 'dragging' : ''}`}
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      style={{ display: 'none' }}
+                      onChange={handleFileChange}
+                    />
+                    <div className="dropzone-icon">
+                      <Upload size={24} />
+                    </div>
+                    <div style={{ fontWeight: 700, color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                      Kompyuterdan rasm tanlang yoki shu yerga tashlang
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
+                      PNG, JPG, WebP formatlar qo'llab-quvvatlanadi
+                    </div>
+                  </div>
+                )}
+
+                {/* 2. URL Input */}
+                {imageMode === 'url' && !imagePreview && (
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input
+                      type="text"
+                      placeholder="https://example.com/rasm.jpg"
+                      value={image}
+                      onChange={(e) => {
+                        setImage(e.target.value);
+                        setImagePreview(e.target.value);
+                      }}
+                      className="form-input"
+                      style={{ flex: 1 }}
+                    />
+                  </div>
+                )}
+
+                {/* 3. Preset Samples */}
+                {imageMode === 'preset' && (
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    {sampleImages.map((s) => (
+                      <button
+                        key={s.url}
+                        type="button"
+                        onClick={() => {
+                          setImage(s.url);
+                          setImagePreview(s.url);
+                        }}
+                        className="nav-tab-btn"
+                        style={{
+                          border: image === s.url ? '2px solid var(--uzum-primary)' : '1px solid var(--border-color)',
+                          background: image === s.url ? 'var(--uzum-primary-light)' : 'transparent',
+                          padding: '8px 14px'
+                        }}
+                      >
+                        <FileImage size={15} />
+                        <span>{s.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Live Image Preview Card */}
+                {imagePreview && (
+                  <div className="image-preview-card">
+                    <img
+                      src={imagePreview}
+                      alt="Yuklangan rasm ko'rinishi"
+                      className="image-preview-img"
+                      onError={() => {
+                        alert("Rasm yuklanmadi, to'g'ri rasm manzilini tekshiring!");
+                        clearImage();
+                      }}
+                    />
+                    <button
+                      type="button"
+                      className="remove-preview-btn"
+                      onClick={clearImage}
+                      title="Rasmni o'chirish"
+                    >
+                      <X size={18} />
+                    </button>
+                  </div>
+                )}
               </div>
-              <input
-                type="text"
-                placeholder="/images/sneakers.jpg yoki rasm manzili"
-                value={image}
-                onChange={(e) => setImage(e.target.value)}
-                className="form-input"
-              />
             </div>
 
             <div className="form-group" style={{ gridColumn: 'span 2' }}>
