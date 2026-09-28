@@ -41,7 +41,7 @@ export default function AuthModal({
           <div>
             <h3 className="modal-title">Tizimga Kirish & Rol</h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.82rem', marginTop: '2px' }}>
-              24-Uyga vazifa: Foydalanuvchi roli va avtorizatsiyasi
+              Foydalanuvchi roli va avtorizatsiyasi
             </p>
           </div>
           <button className="modal-close-btn" onClick={onClose} aria-label="Yopish">

@@ -4,6 +4,7 @@ import ProductCard from './components/ProductCard';
 import CartView from './components/CartView';
 import FavoritesView from './components/FavoritesView';
 import SellerPanel from './components/SellerPanel';
+import TrashView from './components/TrashView';
 import AuthModal from './components/AuthModal';
 import OrderSuccessModal from './components/OrderSuccessModal';
 import Toast from './components/Toast';
@@ -44,7 +45,7 @@ export default function App() {
     return savedUser ? !savedUser.loggedIn : true;
   });
 
-  // Active navigation tab
+  // Active navigation tab ('products' | 'cart' | 'favorites' | 'seller' | 'trash')
   const [activeTab, setActiveTab] = useState(() =>
     safeGet('uzum_active_tab', 'products')
   );
@@ -52,6 +53,11 @@ export default function App() {
   // Products catalog list (including newly added items)
   const [products, setProducts] = useState(() =>
     safeGet('uzum_products', INITIAL_PRODUCTS)
+  );
+
+  // Deleted products bin (Trash)
+  const [deletedProducts, setDeletedProducts] = useState(() =>
+    safeGet('uzum_deleted_products', [])
   );
 
   // Liked product IDs (Saralanganlar)
@@ -108,27 +114,32 @@ export default function App() {
     safeSet('uzum_products', products);
   }, [products]);
 
-  // 5. Liked product IDs
+  // 5. Deleted products list
+  useEffect(() => {
+    safeSet('uzum_deleted_products', deletedProducts);
+  }, [deletedProducts]);
+
+  // 6. Liked product IDs
   useEffect(() => {
     safeSet('uzum_liked', likedIds);
   }, [likedIds]);
 
-  // 6. Cart items
+  // 7. Cart items
   useEffect(() => {
     safeSet('uzum_cart', cartItems);
   }, [cartItems]);
 
-  // 7. Card Quantities
+  // 8. Card Quantities
   useEffect(() => {
     safeSet('uzum_card_quantities', cardQuantities);
   }, [cardQuantities]);
 
-  // 8. Sales statistics
+  // 9. Sales statistics
   useEffect(() => {
     safeSet('uzum_sales', salesStats);
   }, [salesStats]);
 
-  // 9. Selected category
+  // 10. Selected category
   useEffect(() => {
     safeSet('uzum_category', selectedCategory);
   }, [selectedCategory]);
@@ -242,9 +253,13 @@ export default function App() {
     showToast(`"${newProduct.title}" do'konga muvaffaqiyatli qo'shildi!`, 'success');
   };
 
-  // Seller: delete product
+  // Move product to Trash instead of deleting forever
   const handleDeleteProduct = (productId) => {
+    const targetProduct = products.find(p => p.id === productId);
+    if (!targetProduct) return;
+
     setProducts(prev => prev.filter(p => p.id !== productId));
+    setDeletedProducts(prev => [targetProduct, ...prev.filter(p => p.id !== productId)]);
     setCartItems(prev => prev.filter(i => i.product.id !== productId));
     setLikedIds(prev => prev.filter(id => id !== productId));
     setCardQuantities(prev => {
@@ -252,7 +267,39 @@ export default function App() {
       delete updated[productId];
       return updated;
     });
-    showToast("Mahsulot katalogdan o'chirildi", 'info');
+    showToast(`"${targetProduct.title}" o'chirildi va "O'chirilganlar"ga o'tkazildi (Qaytarish mumkin)`, 'info');
+  };
+
+  // Restore product from trash back to active catalog
+  const handleRestoreProduct = (productId) => {
+    const restored = deletedProducts.find(p => p.id === productId);
+    if (!restored) return;
+
+    setDeletedProducts(prev => prev.filter(p => p.id !== productId));
+    setProducts(prev => [restored, ...prev]);
+    showToast(`"${restored.title}" katalogga qayta tiklandi! 🎉`, 'success');
+  };
+
+  // Permanently delete single product
+  const handlePermanentDelete = (productId) => {
+    setDeletedProducts(prev => prev.filter(p => p.id !== productId));
+    showToast("Mahsulot butunlay o'chirib tashlandi", 'info');
+  };
+
+  // Restore all deleted products
+  const handleRestoreAll = () => {
+    if (deletedProducts.length === 0) return;
+    setProducts(prev => [...deletedProducts, ...prev]);
+    setDeletedProducts([]);
+    showToast("Barcha mahsulotlar muvaffaqiyatli tiklandi! 🎉", 'success');
+  };
+
+  // Clear trash permanently
+  const handleClearTrash = () => {
+    if (window.confirm("Barcha o'chirilgan mahsulotlarni butunlay yo'q qilishni xohlaysizmi?")) {
+      setDeletedProducts([]);
+      showToast("Chiqindilar qutisi butunlay tozalandi", 'info');
+    }
   };
 
   // Reset to initial demo state
@@ -260,6 +307,7 @@ export default function App() {
     if (window.confirm("Barcha ma'lumotlarni boshlang'ich holatga qaytarishni xohlaysizmi?")) {
       localStorage.clear();
       setProducts(INITIAL_PRODUCTS);
+      setDeletedProducts([]);
       setLikedIds([1]);
       setCartItems([]);
       setCardQuantities({});
@@ -289,6 +337,7 @@ export default function App() {
         setActiveTab={setActiveTab}
         cartCount={cartTotalItems}
         favoritesCount={likedIds.length}
+        deletedCount={deletedProducts.length}
         theme={theme}
         toggleTheme={toggleTheme}
         user={user}
@@ -426,6 +475,18 @@ export default function App() {
             onStartShopping={() => setActiveTab('products')}
             cardQuantities={cardQuantities}
             onQuantityChange={handleCardQuantityChange}
+          />
+        )}
+
+        {/* DELETED PRODUCTS (TRASH) VIEW */}
+        {activeTab === 'trash' && (
+          <TrashView
+            deletedProducts={deletedProducts}
+            onRestoreProduct={handleRestoreProduct}
+            onPermanentDelete={handlePermanentDelete}
+            onRestoreAll={handleRestoreAll}
+            onClearTrash={handleClearTrash}
+            onBackToShopping={() => setActiveTab('products')}
           />
         )}
 

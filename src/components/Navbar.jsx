@@ -9,7 +9,8 @@ import {
   LogOut, 
   LogIn, 
   Store, 
-  Sparkles 
+  Sparkles,
+  Archive
 } from 'lucide-react';
 
 export default function Navbar({
@@ -17,6 +18,7 @@ export default function Navbar({
   setActiveTab,
   cartCount,
   favoritesCount,
+  deletedCount = 0,
   theme,
   toggleTheme,
   user,
@@ -33,7 +35,7 @@ export default function Navbar({
           </div>
           <div className="brand-text-group">
             <span className="brand-title">uzum market</span>
-            <span className="brand-subtitle">mini 24-uyga vazifa</span>
+            <span className="brand-subtitle">online market</span>
           </div>
         </div>
 
@@ -69,6 +71,19 @@ export default function Navbar({
             <span>Saralanganlar</span>
             {favoritesCount > 0 && (
               <span className="nav-badge pop">{favoritesCount}</span>
+            )}
+          </button>
+
+          <button
+            className={`nav-tab-btn ${activeTab === 'trash' ? 'active' : ''}`}
+            onClick={() => setActiveTab('trash')}
+            id="tab-trash"
+            title="O'chirilgan mahsulotlar arxivi"
+          >
+            <Archive size={16} />
+            <span>O'chirilganlar</span>
+            {deletedCount > 0 && (
+              <span className="nav-badge" style={{ background: '#64748b' }}>{deletedCount}</span>
             )}
           </button>
 
