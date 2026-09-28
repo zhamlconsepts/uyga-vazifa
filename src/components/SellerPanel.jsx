@@ -49,8 +49,31 @@ export default function SellerPanel({
     }
     const reader = new FileReader();
     reader.onload = () => {
-      setImage(reader.result);
-      setImagePreview(reader.result);
+      const img = new Image();
+      img.onload = () => {
+        // Compress image using canvas so it fits smoothly in localStorage without quota issues
+        const maxDim = 600;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedBase64 = canvas.toDataURL('image/jpeg', 0.82);
+        setImage(compressedBase64);
+        setImagePreview(compressedBase64);
+      };
+      img.src = reader.result;
     };
     reader.readAsDataURL(file);
   };

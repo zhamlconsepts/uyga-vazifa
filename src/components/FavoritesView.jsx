@@ -7,7 +7,9 @@ export default function FavoritesView({
   onToggleLike,
   onAddToCart,
   userRole,
-  onStartShopping
+  onStartShopping,
+  cardQuantities,
+  onQuantityChange
 }) {
   if (favorites.length === 0) {
     return (
@@ -42,6 +44,8 @@ export default function FavoritesView({
           <ProductCard
             key={product.id}
             product={product}
+            quantity={cardQuantities?.[product.id] || 1}
+            onQuantityChange={onQuantityChange}
             isLiked={true}
             onToggleLike={onToggleLike}
             onAddToCart={onAddToCart}

@@ -8,91 +8,132 @@ import AuthModal from './components/AuthModal';
 import OrderSuccessModal from './components/OrderSuccessModal';
 import Toast from './components/Toast';
 import { INITIAL_PRODUCTS } from './data/initialProducts';
-import { Sparkles, Shield, Truck, Zap, Filter, PlusCircle } from 'lucide-react';
+import { Sparkles, Shield, Truck, Zap, Filter, PlusCircle, RotateCcw } from 'lucide-react';
+
+// Safe localStorage Helpers
+const safeGet = (key, fallback) => {
+  try {
+    const item = localStorage.getItem(key);
+    return item !== null ? JSON.parse(item) : fallback;
+  } catch (error) {
+    console.warn(`LocalStorage read error for "${key}":`, error);
+    return fallback;
+  }
+};
+
+const safeSet = (key, value) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (error) {
+    console.warn(`LocalStorage write error for "${key}":`, error);
+  }
+};
 
 export default function App() {
-  // Theme state: dark / light
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem('uzum_theme');
-    return saved || 'light';
-  });
+  // Theme state (dark / light)
+  const [theme, setTheme] = useState(() => safeGet('uzum_theme', 'light'));
 
-  // User auth and role state (starts unauthenticated so login modal pops up initially as requested!)
-  const [user, setUser] = useState(() => {
-    const saved = localStorage.getItem('uzum_user');
-    return saved ? JSON.parse(saved) : { name: '', role: 'buyer', loggedIn: false };
-  });
+  // User authentication and role (buyer / seller)
+  const [user, setUser] = useState(() =>
+    safeGet('uzum_user', { name: '', role: 'buyer', loggedIn: false })
+  );
 
-  // Login modal open state (initially true if user is not logged in)
+  // Login modal (open if user is not logged in)
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(() => {
-    const saved = localStorage.getItem('uzum_user');
-    return saved ? !JSON.parse(saved).loggedIn : true;
+    const savedUser = safeGet('uzum_user', null);
+    return savedUser ? !savedUser.loggedIn : true;
   });
 
-  // Navigation tab: 'products' | 'cart' | 'favorites' | 'seller'
-  const [activeTab, setActiveTab] = useState('products');
+  // Active navigation tab
+  const [activeTab, setActiveTab] = useState(() =>
+    safeGet('uzum_active_tab', 'products')
+  );
 
-  // Products catalog
-  const [products, setProducts] = useState(() => {
-    const saved = localStorage.getItem('uzum_products');
-    return saved ? JSON.parse(saved) : INITIAL_PRODUCTS;
-  });
+  // Products catalog list (including newly added items)
+  const [products, setProducts] = useState(() =>
+    safeGet('uzum_products', INITIAL_PRODUCTS)
+  );
 
   // Liked product IDs (Saralanganlar)
-  const [likedIds, setLikedIds] = useState(() => {
-    const saved = localStorage.getItem('uzum_liked');
-    return saved ? JSON.parse(saved) : [1]; // 1st product liked by default to show functionality
-  });
+  const [likedIds, setLikedIds] = useState(() =>
+    safeGet('uzum_liked', [1])
+  );
 
   // Cart items: [ { product, quantity } ]
-  const [cartItems, setCartItems] = useState(() => {
-    const saved = localStorage.getItem('uzum_cart');
-    return saved ? JSON.parse(saved) : [];
-  });
+  const [cartItems, setCartItems] = useState(() =>
+    safeGet('uzum_cart', [])
+  );
 
-  // Sales statistics for seller
-  const [salesStats, setSalesStats] = useState(() => {
-    const saved = localStorage.getItem('uzum_sales');
-    return saved ? JSON.parse(saved) : { ordersCount: 3, totalRevenue: 840000 };
-  });
+  // Card quantities: { [productId]: quantity }
+  const [cardQuantities, setCardQuantities] = useState(() =>
+    safeGet('uzum_card_quantities', {})
+  );
 
-  // Category filter on catalog
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  // Seller sales statistics
+  const [salesStats, setSalesStats] = useState(() =>
+    safeGet('uzum_sales', { ordersCount: 3, totalRevenue: 840000 })
+  );
+
+  // Selected category filter
+  const [selectedCategory, setSelectedCategory] = useState(() =>
+    safeGet('uzum_category', 'All')
+  );
 
   // Toasts
   const [toasts, setToasts] = useState([]);
 
-  // Checkout order success modal data
+  // Checkout order modal
   const [orderModalData, setOrderModalData] = useState(null);
 
-  // Sync theme to document element
+  // --- PERSISTENCE EFFECT HOOKS ---
+
+  // 1. Sync theme to document & localStorage
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
-    localStorage.setItem('uzum_theme', theme);
+    safeSet('uzum_theme', theme);
   }, [theme]);
 
-  // Sync state to localStorage
+  // 2. User info & role
   useEffect(() => {
-    localStorage.setItem('uzum_products', JSON.stringify(products));
-  }, [products]);
-
-  useEffect(() => {
-    localStorage.setItem('uzum_liked', JSON.stringify(likedIds));
-  }, [likedIds]);
-
-  useEffect(() => {
-    localStorage.setItem('uzum_cart', JSON.stringify(cartItems));
-  }, [cartItems]);
-
-  useEffect(() => {
-    localStorage.setItem('uzum_sales', JSON.stringify(salesStats));
-  }, [salesStats]);
-
-  useEffect(() => {
-    localStorage.setItem('uzum_user', JSON.stringify(user));
+    safeSet('uzum_user', user);
   }, [user]);
 
-  // Toast helper
+  // 3. Active Tab
+  useEffect(() => {
+    safeSet('uzum_active_tab', activeTab);
+  }, [activeTab]);
+
+  // 4. Products list
+  useEffect(() => {
+    safeSet('uzum_products', products);
+  }, [products]);
+
+  // 5. Liked product IDs
+  useEffect(() => {
+    safeSet('uzum_liked', likedIds);
+  }, [likedIds]);
+
+  // 6. Cart items
+  useEffect(() => {
+    safeSet('uzum_cart', cartItems);
+  }, [cartItems]);
+
+  // 7. Card Quantities
+  useEffect(() => {
+    safeSet('uzum_card_quantities', cardQuantities);
+  }, [cardQuantities]);
+
+  // 8. Sales statistics
+  useEffect(() => {
+    safeSet('uzum_sales', salesStats);
+  }, [salesStats]);
+
+  // 9. Selected category
+  useEffect(() => {
+    safeSet('uzum_category', selectedCategory);
+  }, [selectedCategory]);
+
+  // Toast Helper
   const showToast = (message, type = 'info') => {
     const id = Date.now();
     setToasts(prev => [...prev, { id, message, type }]);
@@ -134,6 +175,14 @@ export default function App() {
         return [...prev, product.id];
       }
     });
+  };
+
+  // Quantity change on individual product card
+  const handleCardQuantityChange = (productId, newQty) => {
+    setCardQuantities(prev => ({
+      ...prev,
+      [productId]: newQty
+    }));
   };
 
   // Add to cart
@@ -198,7 +247,25 @@ export default function App() {
     setProducts(prev => prev.filter(p => p.id !== productId));
     setCartItems(prev => prev.filter(i => i.product.id !== productId));
     setLikedIds(prev => prev.filter(id => id !== productId));
+    setCardQuantities(prev => {
+      const updated = { ...prev };
+      delete updated[productId];
+      return updated;
+    });
     showToast("Mahsulot katalogdan o'chirildi", 'info');
+  };
+
+  // Reset to initial demo state
+  const handleResetData = () => {
+    if (window.confirm("Barcha ma'lumotlarni boshlang'ich holatga qaytarishni xohlaysizmi?")) {
+      localStorage.clear();
+      setProducts(INITIAL_PRODUCTS);
+      setLikedIds([1]);
+      setCartItems([]);
+      setCardQuantities({});
+      setSalesStats({ ordersCount: 3, totalRevenue: 840000 });
+      showToast("Barcha ma'lumotlar boshlang'ich holatga qaytarildi", 'info');
+    }
   };
 
   // Derived counts
@@ -242,7 +309,7 @@ export default function App() {
                 </h1>
                 <p>
                   Sifatli mahsulotlar, qulay narxlar va 1 kunda bepul yetkazib berish xizmati. 
-                  Yurakcha orqali saralanganlarga qo'shing va miqdorni o'zingiz belgilang!
+                  Barcha ma'lumotlaringiz (savat, layklar, narxlar) <b>LocalStorage</b>'da doimiy saqlanadi!
                 </p>
               </div>
 
@@ -280,26 +347,42 @@ export default function App() {
                 ))}
               </div>
 
-              <button
-                className="empty-action-btn"
-                onClick={() => {
-                  if (user.role !== 'seller') {
-                    setUser(prev => ({ ...prev, role: 'seller', loggedIn: true, name: prev.name || 'Sotuvchi' }));
-                  }
-                  setActiveTab('seller');
-                }}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  padding: '8px 16px',
-                  borderRadius: '12px',
-                  fontSize: '0.88rem'
-                }}
-              >
-                <PlusCircle size={16} />
-                <span>+ Yangi mahsulot (Rasm bilan)</span>
-              </button>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  className="empty-action-btn"
+                  onClick={() => {
+                    if (user.role !== 'seller') {
+                      setUser(prev => ({ ...prev, role: 'seller', loggedIn: true, name: prev.name || 'Sotuvchi' }));
+                    }
+                    setActiveTab('seller');
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    padding: '8px 16px',
+                    borderRadius: '12px',
+                    fontSize: '0.88rem'
+                  }}
+                >
+                  <PlusCircle size={16} />
+                  <span>+ Yangi mahsulot (Rasm bilan)</span>
+                </button>
+
+                <button
+                  className="nav-tab-btn"
+                  onClick={handleResetData}
+                  title="Boshlang'ich holatga qaytarish"
+                  style={{
+                    border: '1px solid var(--border-color)',
+                    padding: '8px 12px',
+                    borderRadius: '12px',
+                    color: 'var(--text-muted)'
+                  }}
+                >
+                  <RotateCcw size={15} />
+                </button>
+              </div>
             </div>
 
             {/* Products Grid */}
@@ -308,6 +391,8 @@ export default function App() {
                 <ProductCard
                   key={product.id}
                   product={product}
+                  quantity={cardQuantities[product.id] || 1}
+                  onQuantityChange={handleCardQuantityChange}
                   isLiked={likedIds.includes(product.id)}
                   onToggleLike={handleToggleLike}
                   onAddToCart={handleAddToCart}
@@ -339,6 +424,8 @@ export default function App() {
             onAddToCart={handleAddToCart}
             userRole={user.role}
             onStartShopping={() => setActiveTab('products')}
+            cardQuantities={cardQuantities}
+            onQuantityChange={handleCardQuantityChange}
           />
         )}
 

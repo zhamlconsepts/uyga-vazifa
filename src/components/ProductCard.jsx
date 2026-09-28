@@ -7,31 +7,38 @@ export default function ProductCard({
   onToggleLike,
   onAddToCart,
   userRole,
-  onDeleteProduct
+  onDeleteProduct,
+  quantity = 1,
+  onQuantityChange
 }) {
-  const [quantity, setQuantity] = useState(1);
+  const [localQty, setLocalQty] = useState(quantity);
   const [isJustAdded, setIsJustAdded] = useState(false);
   const [priceFlash, setPriceFlash] = useState(false);
 
-  // Dynamic price calculation when plus or minus is clicked
-  const totalPrice = product.price * quantity;
+  // Keep in sync with parent prop if provided
+  const currentQuantity = quantity || localQty;
+  const totalPrice = product.price * currentQuantity;
 
   const handleIncrease = () => {
-    setQuantity(prev => prev + 1);
+    const nextQty = currentQuantity + 1;
+    setLocalQty(nextQty);
+    onQuantityChange?.(product.id, nextQty);
     setPriceFlash(true);
     setTimeout(() => setPriceFlash(false), 250);
   };
 
   const handleDecrease = () => {
-    if (quantity > 1) {
-      setQuantity(prev => prev - 1);
+    if (currentQuantity > 1) {
+      const nextQty = currentQuantity - 1;
+      setLocalQty(nextQty);
+      onQuantityChange?.(product.id, nextQty);
       setPriceFlash(true);
       setTimeout(() => setPriceFlash(false), 250);
     }
   };
 
   const handleAddToCart = () => {
-    onAddToCart(product, quantity);
+    onAddToCart(product, currentQuantity);
     setIsJustAdded(true);
     setTimeout(() => {
       setIsJustAdded(false);
